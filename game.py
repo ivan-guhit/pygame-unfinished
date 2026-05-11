@@ -60,11 +60,11 @@ class Game():
         self.game_state = GameState('title_screen')
  
         self.states = {
-            'test_world'  : Test(self.tile_size, self.player, self),
+            'test_world' : Test(self.tile_size, self.player, self),
             'title_screen': TitleScreen(self.tile_size, self.surface, self.game_state),
-            'level1'      : LevelUno(self.player, self.tile_size, self.actions, self),
-            'level2'      : LevelDos(self.player, self.tile_size, self.actions, self),
-            'credits'     : Credits(self.tile_size, self.surface, self.game_state, self)
+            'level1' : LevelUno(self.player, self.tile_size, self.actions, self),
+            'level2' : LevelDos(self.player, self.tile_size, self.actions, self),
+            'credits' : Credits(self.tile_size, self.surface, self.game_state, self)
         }
  
     def reload_level(self, level_name):
@@ -125,10 +125,10 @@ class Game():
                     self.actions['heavy_attack'] = True
                     self.player.register_input("K")
  
-                # ── Space: dash / sprint trigger ──────────────────────────
+
                 if event.key == pygame.K_SPACE:
                     self.player.register_input("SPACE")
-                # ─────────────────────────────────────────────────────────
+
  
                 if event.key == pygame.K_RETURN:
                     self.game_state.set_state('level1')
