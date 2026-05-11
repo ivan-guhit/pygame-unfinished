@@ -2,6 +2,7 @@ import pygame
 
 
 from scripts.core.animation_player import Animation
+from scripts.cutscene import Cutscene
 from pygame import Vector2, Rect, font, mixer, draw
 from data.entities.emeny.emeny.emeny import Emeny
 from scripts.utils import load_image
@@ -14,14 +15,23 @@ class LevelUno():
         self.tile_size = tile_size
         self.actions = actions
         self.game = game
+
+
+        self.cutscene = Cutscene([
+            "What r u doing bro!",
+            "I almost hit you man",
+            "you know what",
+            "come",
+        ])
+
+        self.cutscene_triggered = True
+        self.cutscene.start()
+
+        self.loc_guide = Vector2(0,0).elementwise() * tile_size
  
         self.e_size = Vector2(20, 27)
- 
-        self.emeny_pos1 = Vector2(5, 3).elementwise() * self.tile_size
-        self.emeny_pos2 = Vector2(7, 3).elementwise() * self.tile_size
-        self.emeny_pos3 = Vector2(9, 3).elementwise() * self.tile_size
-        self.emeny_pos4 = Vector2(11, 3).elementwise() * self.tile_size
- 
+
+        self.dang = pygame.font.SysFont('Arial', 10)
  
         self.pos = Vector2(0,0).elementwise() * tile_size
         self.col_pos = Vector2(1,4).elementwise() * tile_size
@@ -39,10 +49,10 @@ class LevelUno():
         self.level_complete = False
   
  
-        self.enemies = [Emeny(self.game, 100, self.player,' emeny',self.emeny_pos1, self.e_size, self.tile_size), 
-                        Emeny(self.game, 100, self.player,' emeny',self.emeny_pos2, self.e_size, self.tile_size),
-                        Emeny(self.game, 100, self.player,' emeny',self.emeny_pos3, self.e_size, self.tile_size),
-                        Emeny(self.game, 100, self.player,' emeny',self.emeny_pos4, self.e_size, self.tile_size),]
+        self.enemies = [Emeny(self.game, 100, self.player,' emeny', Vector2(3.3, 2).elementwise() * self.tile_size, self.e_size, self.tile_size), 
+                        Emeny(self.game, 100, self.player,' emeny', Vector2(7, 3).elementwise() * self.tile_size, self.e_size, self.tile_size),
+                        Emeny(self.game, 100, self.player,' emeny', Vector2(9, 3).elementwise() * self.tile_size, self.e_size, self.tile_size),
+                        Emeny(self.game, 100, self.player,' emeny', Vector2(11, 3).elementwise() * self.tile_size, self.e_size, self.tile_size),]
  
         
         self.assets = {
@@ -76,18 +86,6 @@ class LevelUno():
  
         self.collisions = [Rect(int(self.col_pos.x - self.tile_size.x), int(self.col_pos.y - self.tile_size.y), int(self.size.x), 32), 
                            Rect(self.leftwall.x, 0, self.tile_size.x, int(self.size.y)),]
- 
-    def reset(self):
- 
-        self.enemies = [Emeny(self.game, 100, self.player,' emeny', Vector2(5, 3).elementwise() * self.tile_size, self.e_size, self.tile_size), 
-                        Emeny(self.game, 100, self.player,' emeny', Vector2(7, 3).elementwise() * self.tile_size, self.e_size, self.tile_size),
-                        Emeny(self.game, 100, self.player,' emeny', Vector2(9, 3).elementwise() * self.tile_size, self.e_size, self.tile_size),
-                        Emeny(self.game, 100, self.player,' emeny', Vector2(11, 3).elementwise() * self.tile_size, self.e_size, self.tile_size),]
-        
-        self.flanked = False
-        self.level_complete = False
-        
-
         
     def spawn_enemy(self):
         new_enemy = type(self.enemies[0])(self.player.game, 100, self.player, 'emeny', Vector2(500, 200), self.player.game.e_size, self.tile_size)  
@@ -105,11 +103,24 @@ class LevelUno():
         self.flanked = True
 
 
-
-
-
     
     def update(self, dt, velocity):
+
+        if self.cutscene.active:
+            self.player.velocity.x = 0
+            self.player.update(velocity, self.collisions, dt)
+            self.cutscene.update(dt)
+
+
+            for enemy in self.enemies:
+                enemy.update(velocity, self.collisions, dt)
+                if enemy.current_state != enemy.states['idle']:
+                    enemy.change_state('idle')  
+                
+
+            return 
+
+
         self.player.update(velocity, self.collisions, dt)
         
         for enemy in self.enemies:
@@ -186,14 +197,15 @@ class LevelUno():
  
  
         for i in range(2):
-            surface.blit(self.assets['t&b_sfg'], (fg.x + i * self.assets['t&b_sfg'].get_width(), fg.y))
+            surface.blit(self.assets['t&b_sfg'], (main.x + i * self.assets['t&b_sfg'].get_width(), fg.y))
  
-
-
-
         if self.level_complete:
             text = self.custom_font.render('Go! >', True, (255, 255, 255))
 
             surface.blit(pygame.transform.scale(text, (self.nl_size.x, self.nl_size.y)), (self.nl_pos.x, self.nl_pos.y))
         
+        self.cutscene.render(surface, self.custom_font)
+
+
+
         

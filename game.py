@@ -1,5 +1,3 @@
-
-
 import pygame
 import os
 import random
@@ -26,7 +24,7 @@ class Game():
         self.tile_size = Vector2(32, 32)
         self.tile_layout = Vector2(6,4).elementwise() * self.tile_size
         self.window_size = Vector2(16, 10).elementwise() * self.cell_size
-        self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)), pygame.SCALED | pygame.FULLSCREEN)
+        self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)))
         self.surface = pygame.Surface((int(self.tile_layout.x), int(self.tile_layout.y)))
         
         pygame.display.set_caption('Thugs Invasion Thugs Evasion (TITE)')
@@ -43,14 +41,14 @@ class Game():
         self.freeze = False
  
         self.actions = {
-            'jump' : False, 
-            'down' : False, 
-            'left' : False, 
-            'right' : False,
+            'jump'         : False, 
+            'down'         : False, 
+            'left'         : False, 
+            'right'        : False,
             'light_attack' : False,
             'heavy_attack' : False,
-            'flipped' : False,
-            'dodge' : False,
+            'flipped'      : False,
+            'dodge'        : False,
         }
  
         self.player_pos = Vector2(1, 1).elementwise() * self.tile_size
@@ -62,13 +60,12 @@ class Game():
         self.game_state = GameState('title_screen')
  
         self.states = {
-            'test_world' : Test(self.tile_size, self.player),
-            'title_screen' : TitleScreen(self.tile_size, self.surface, self.game_state),
-            'level1' : LevelUno(self.player, self.tile_size, self.actions, self),
-            'level2' : LevelDos(self.player, self.tile_size, self.actions, self),
-            'credits' : Credits(self.tile_size, self.surface, self.game_state, self)
+            'test_world'  : Test(self.tile_size, self.player, self),
+            'title_screen': TitleScreen(self.tile_size, self.surface, self.game_state),
+            'level1'      : LevelUno(self.player, self.tile_size, self.actions, self),
+            'level2'      : LevelDos(self.player, self.tile_size, self.actions, self),
+            'credits'     : Credits(self.tile_size, self.surface, self.game_state, self)
         }
- 
  
     def reload_level(self, level_name):
         if level_name == 'level1':
@@ -91,6 +88,9 @@ class Game():
  
  
     def input_handle(self):
+ 
+        current_state = self.game_state.get_state()
+        in_cutscene = (current_state == 'level1' and self.states['level1'].cutscene.active)
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -100,12 +100,18 @@ class Game():
                 if event.key == pygame.K_ESCAPE:
                     self.gameloop = False
                     break
+ 
+                if in_cutscene:
+                    continue
+ 
                 if event.key == pygame.K_d:
                     self.actions['right'] = True
                     self.player.velocity.x = 0.5
                 if event.key == pygame.K_a:
                     self.actions['left'] = True
                     self.player.velocity.x = -0.5 
+                if event.key == pygame.K_s:
+                    self.player.register_input("S")
                 if event.key == pygame.K_w:
                     if self.player.down:
                         self.actions['jump'] = True
@@ -114,8 +120,19 @@ class Game():
                     self.actions['flipped'] = True
                 if event.key == pygame.K_j:
                     self.actions['light_attack'] = True
+                    self.player.register_input("J")
+                if event.key == pygame.K_k:
+                    self.actions['heavy_attack'] = True
+                    self.player.register_input("K")
+ 
+                # ── Space: dash / sprint trigger ──────────────────────────
+                if event.key == pygame.K_SPACE:
+                    self.player.register_input("SPACE")
+                # ─────────────────────────────────────────────────────────
+ 
                 if event.key == pygame.K_RETURN:
                     self.game_state.set_state('level1')
+ 
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_w:
                     self.actions['jump'] = False
@@ -127,7 +144,8 @@ class Game():
                     self.player.velocity.x = 0
                 if event.key == pygame.K_j:
                     self.actions['light_attack'] = False
-                    print(self.player.attack_pos)
+                if event.key == pygame.K_k:
+                    self.actions['heavy_attack'] = True
                 if event.key == pygame.K_e:
                     self.actions['flipped'] = False
  
@@ -158,14 +176,11 @@ class Game():
             self.reload_level('level2')
             self.game_state.set_state('title_screen')
  
-        if self.player.velocity.x > 0:
-            self.scroll.x += int(((self.player.rect().centerx - self.surface.get_width() / 2 - self.scroll.x) / 5) + 2)
-        elif self.player.velocity.x < 0:
-            self.scroll.x += int(((self.player.rect().centerx - self.surface.get_width() / 2 - self.scroll.x) / 5) - 2)
-        else:
-            self.scroll.x += int(((self.player.rect().centerx - self.surface.get_width() / 2 - self.scroll.x) / 5))
+        target_x = self.player.rect().centerx - self.surface.get_width() / 2
+        target_y = self.player.rect().centery - self.surface.get_height() / 2
  
-        self.scroll.y = int(((self.player.rect().centery - self.surface.get_height() / 2 - self.scroll.y) / 5))
+        self.scroll.x += (target_x - self.scroll.x) / 8
+        self.scroll.y += (target_y - self.scroll.y) / 8
  
         if current_state == 'level2':
             level_width = 224
@@ -182,7 +197,7 @@ class Game():
  
         self.surface.fill((0,0,0))
  
-        self.states[self.game_state.get_state()].render(self.surface, self.scroll)
+        self.states[self.game_state.get_state()].render(self.surface, Vector2(int(self.scroll.x), int(self.scroll.y)))
  
         shake = Vector2(random.uniform(-self.screen_shake, self.screen_shake), random.uniform(-self.screen_shake, self.screen_shake))
  

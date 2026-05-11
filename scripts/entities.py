@@ -22,6 +22,7 @@ class PhysicsEntity():
         self.flip = False
 
         self.health = health
+        self.p_rect = self.rect()
 
     def rect(self):
         return pygame.Rect(self.pos.x, self.pos.y, self.size.x, self.size.y)
