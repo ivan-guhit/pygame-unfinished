@@ -41,14 +41,14 @@ class Game():
         self.freeze = False
  
         self.actions = {
-            'jump'         : False, 
-            'down'         : False, 
-            'left'         : False, 
-            'right'        : False,
+            'jump' : False, 
+            'down' : False, 
+            'left' : False, 
+            'right': False,
             'light_attack' : False,
             'heavy_attack' : False,
-            'flipped'      : False,
-            'dodge'        : False,
+            'flipped' : False,
+            'dodge' : False,
         }
  
         self.player_pos = Vector2(1, 1).elementwise() * self.tile_size
