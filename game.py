@@ -9,14 +9,16 @@ from data.entities.player.player import Player
 from states.game_states.titlescreen.title import TitleScreen
 from states.game_states.credits.credits import Credits
 from states.game_states.game_states import GameState
+from states.game_states.controls.controls import ControlsScreen
 from data.levels.Level1.level1 import LevelUno
 from data.levels.Level2.level2 import LevelDos
  
 from data.levels.TESTicles import Test
  
+ 
 class Game():
     def __init__(self):
-        
+ 
         pygame.init()
  
         self.delta = 0
@@ -26,7 +28,7 @@ class Game():
         self.window_size = Vector2(16, 10).elementwise() * self.cell_size
         self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)))
         self.surface = pygame.Surface((int(self.tile_layout.x), int(self.tile_layout.y)))
-        
+ 
         pygame.display.set_caption('Thugs Invasion Thugs Evasion (TITE)')
  
         self.gameloop = True
@@ -41,10 +43,10 @@ class Game():
         self.freeze = False
  
         self.actions = {
-            'jump' : False, 
-            'down' : False, 
-            'left' : False, 
-            'right': False,
+            'jump' : False,
+            'down' : False,
+            'left' : False,
+            'right' : False,
             'light_attack' : False,
             'heavy_attack' : False,
             'flipped' : False,
@@ -60,11 +62,12 @@ class Game():
         self.game_state = GameState('title_screen')
  
         self.states = {
-            'test_world' : Test(self.tile_size, self.player, self),
+            'test_world'  : Test(self.tile_size, self.player, self),
             'title_screen': TitleScreen(self.tile_size, self.surface, self.game_state),
-            'level1' : LevelUno(self.player, self.tile_size, self.actions, self),
-            'level2' : LevelDos(self.player, self.tile_size, self.actions, self),
-            'credits' : Credits(self.tile_size, self.surface, self.game_state, self)
+            'controls'    : ControlsScreen(self.tile_size, self.surface, self.game_state, self),
+            'level1'      : LevelUno(self.player, self.tile_size, self.actions, self),
+            'level2'      : LevelDos(self.player, self.tile_size, self.actions, self),
+            'credits'     : Credits(self.tile_size, self.surface, self.game_state, self)
         }
  
     def reload_level(self, level_name):
@@ -73,25 +76,21 @@ class Game():
         elif level_name == 'level2':
             self.states['level2'] = LevelDos(self.player, self.tile_size, self.actions, self)
  
- 
     def run(self):
         while self.gameloop:
             self.input_handle()
             self.update()
             self.render()
             self.delta = self.clock.tick(60) / 1000.00
-   
  
     def hit_pause(self, duration):
         self.hitpause = duration
         self.freeze = False
  
- 
     def input_handle(self):
- 
         current_state = self.game_state.get_state()
         in_cutscene = (current_state == 'level1' and self.states['level1'].cutscene.active)
-        
+ 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.gameloop = False
@@ -101,6 +100,11 @@ class Game():
                     self.gameloop = False
                     break
  
+                if current_state == 'controls':
+                    if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.states['controls'].confirm()
+                    continue
+ 
                 if in_cutscene:
                     continue
  
@@ -109,7 +113,7 @@ class Game():
                     self.player.velocity.x = 0.5
                 if event.key == pygame.K_a:
                     self.actions['left'] = True
-                    self.player.velocity.x = -0.5 
+                    self.player.velocity.x = -0.5
                 if event.key == pygame.K_s:
                     self.player.register_input("S")
                 if event.key == pygame.K_w:
@@ -125,15 +129,17 @@ class Game():
                     self.actions['heavy_attack'] = True
                     self.player.register_input("K")
  
-
                 if event.key == pygame.K_SPACE:
                     self.player.register_input("SPACE")
-
  
                 if event.key == pygame.K_RETURN:
-                    self.game_state.set_state('level1')
+                    if current_state == 'title_screen':
+                        self.game_state.set_state('controls')
  
             elif event.type == pygame.KEYUP:
+                if current_state == 'controls':
+                    continue
+ 
                 if event.key == pygame.K_w:
                     self.actions['jump'] = False
                 if event.key == pygame.K_d:
@@ -149,9 +155,7 @@ class Game():
                 if event.key == pygame.K_e:
                     self.actions['flipped'] = False
  
- 
     def update(self):
-        
         current_state = self.game_state.get_state()
  
         if self.freeze:
@@ -161,13 +165,20 @@ class Game():
         else:
             if current_state != self.previous_state:
                 self.scroll = Vector2(0, 0)
-                self.player.reset()
-                self.player.velocity = Vector2(0, 0)
+ 
+                if current_state != 'controls':
+                    self.player.reset()
+                    self.player.velocity = Vector2(0, 0)
+ 
                 if current_state == 'level1':
                     self.reload_level('level1')
                     self.reload_level('level2')
+                    self.states['controls'] = ControlsScreen(
+                        self.tile_size, self.surface, self.game_state, self
+                    )
+ 
                 self.previous_state = current_state
-        
+ 
             self.states[current_state].update(self.delta, self.velocity)
  
         if self.player.alive == False:
@@ -188,18 +199,26 @@ class Game():
         else:
             level_width = 384
             level_height = 128
-    
+ 
         self.scroll.x = max(0, min(self.scroll.x, level_width - self.surface.get_width()))
         self.scroll.y = max(0, min(self.scroll.y, level_height - self.surface.get_height()))
  
- 
     def render(self):
+        current_state = self.game_state.get_state()
+ 
+        if current_state == 'controls':
+            self.states['controls'].render(self.surface, Vector2(0, 0))
+            pygame.display.flip()
+            return
  
         self.surface.fill((0,0,0))
  
-        self.states[self.game_state.get_state()].render(self.surface, Vector2(int(self.scroll.x), int(self.scroll.y)))
+        self.states[current_state].render(self.surface, Vector2(int(self.scroll.x), int(self.scroll.y)))
  
-        shake = Vector2(random.uniform(-self.screen_shake, self.screen_shake), random.uniform(-self.screen_shake, self.screen_shake))
+        shake = Vector2(
+            random.uniform(-self.screen_shake, self.screen_shake),
+            random.uniform(-self.screen_shake, self.screen_shake)
+        )
  
         if self.screen_shake > 0:
             self.screen_shake -= 1

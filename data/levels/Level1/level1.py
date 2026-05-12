@@ -18,10 +18,11 @@ class LevelUno():
 
 
         self.cutscene = Cutscene([
-            "What r u doing bro!",
-            "I almost hit you man",
-            "you know what",
-            "come",
+            "hello?",
+            "i've runned out of gas",
+            "can you help me?",
+            "...",
+            "oh god pls no!",
         ])
 
         self.cutscene_triggered = True
@@ -158,9 +159,9 @@ class LevelUno():
         bg3 = scroll * -0.3
  
         mg1 =  scroll * -0.5
-        mg2 =  scroll * -0.6
-        mg3 =  scroll * -0.7
-        fg =  scroll * -0.8
+        mg2 =  scroll * -0.7
+        fg1 =  scroll * -0.8
+        fg2 = scroll * -0.9
         main = scroll * -1.0
  
  
@@ -168,13 +169,14 @@ class LevelUno():
             surface.blit(self.assets['bg'], (bg1.x + i * self.assets['bg'].get_width(), bg1.y))
             surface.blit(self.assets['treebg'], (bg2.x + i * self.assets['treebg'].get_width(), bg2.y))
             surface.blit(self.assets['bushbg'], (bg3.x + i * self.assets['bushbg'].get_width(), bg3.y))
+            surface.blit(self.assets['treemg'], (mg1.x + i * self.assets['treemg'].get_width(), mg1.y))
  
         self.assets['rain-mg'].play(surface, scroll, False)
         
         for i in range(5):
-            surface.blit(self.assets['treemg'], (mg1.x + i * self.assets['treemg'].get_width(), mg1.y))
-            surface.blit(self.assets['bushmg'], (mg2.x + i * self.assets['bushmg'].get_width(), mg2.y))
-            surface.blit(self.assets['fog'], (mg3.x + i * self.assets['fog'].get_width(), mg3.y))
+            surface.blit(self.assets['treefg'], (fg1.x + i * self.assets['treefg'].get_width(), mg1.y))
+            surface.blit(self.assets['bushmg'], (fg2.x + i * self.assets['bushmg'].get_width(), fg2.y))
+            surface.blit(self.assets['fog'], (mg2.x + i * self.assets['fog'].get_width(), mg2.y))
             surface.blit(self.assets['ground_top'], (main.x + i * self.assets['ground_top'].get_width(), main.y))
         
         self.player.render(surface, scroll)
@@ -197,7 +199,7 @@ class LevelUno():
  
  
         for i in range(2):
-            surface.blit(self.assets['t&b_sfg'], (main.x + i * self.assets['t&b_sfg'].get_width(), fg.y))
+            surface.blit(self.assets['t&b_sfg'], (fg1.x + i * self.assets['t&b_sfg'].get_width(), fg1.y))
  
         if self.level_complete:
             text = self.custom_font.render('Go! >', True, (255, 255, 255))

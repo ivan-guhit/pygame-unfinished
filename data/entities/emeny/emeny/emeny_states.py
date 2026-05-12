@@ -1,7 +1,6 @@
 
 from states.state import State
-from pygame import mixer
- 
+
  
 class Idle(State):
     
@@ -75,8 +74,6 @@ class Hurt(State):
     def enter(self):
         self.entity.current_anim = self.entity.hurt[self.entity.hit_count]
         self.entity.current_anim.reset()
-        mixer.music.load('assets/audio/player/punch.mp3')
-        mixer.music.play(0, 0.3)
  
     def update(self, dt):
         if self.entity.current_anim.finished:
@@ -99,8 +96,6 @@ class Dead(State):
     def enter(self):
         self.entity.current_anim = self.entity.anim['death']
         self.entity.current_anim.reset()
-        mixer.music.load('assets/audio/emeny/pain.wav')
-        mixer.music.play(0, 0.3)
  
     def update(self, dt):
     
