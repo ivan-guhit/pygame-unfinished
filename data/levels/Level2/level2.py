@@ -17,7 +17,7 @@ class LevelDos():
  
         self.emeny_pos = Vector2(5, 3).elementwise() * self.tile_size
 
-        self.boss = Invisbol(self.game, 400, self.player,'boss', self.emeny_pos, self.e_size, self.tile_size)
+        self.boss = Invisbol(self.game, 800, self.player,'boss', self.emeny_pos, self.e_size, self.tile_size)
  
  
         self.pos = Vector2(0,0).elementwise() * tile_size

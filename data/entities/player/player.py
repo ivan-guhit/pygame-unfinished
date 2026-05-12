@@ -100,9 +100,11 @@ class Player(PhysicsEntity):
             hitrect = pygame.Rect((self.p_rect.x + 3), self.p_rect.y, 5, 30)
  
         if self.current_state == self.states['light_attack']:
+
             if 1 <= self.current_anim.frame <= 2:
+
                 if hitrect.colliderect(enemy):
-                    enemy.damage(2)
+                    enemy.damage(7)
                     enemy.change_state('hurt')
                     self.hitting = True
                     self.game.hit_pause(5)
@@ -118,31 +120,31 @@ class Player(PhysicsEntity):
                 enemy.velocity.x *= 0.5
  
         elif self.current_state == self.states['grab']:
+
             grab_state = self.states['grab']
+
             if not grab_state.grabbed and 1 <= self.current_anim.frame <= 3:
+
                 if self.turn_toggle == False:
+
                     grab_rect = pygame.Rect(self.p_rect.right, self.p_rect.y, grab_state.GRAB_RANGE, 30)
+
                 else:
+
                     grab_rect = pygame.Rect(self.p_rect.left - grab_state.GRAB_RANGE, self.p_rect.y, grab_state.GRAB_RANGE, 30)
 
                 if grab_rect.colliderect(enemy.p_rect):
+
                     grab_state.grabbed = True
                     grab_state.target_enemy = enemy
                     enemy.change_state('hurt')
                     self.game.hit_pause(5)
  
-        elif self.current_state == self.states['low_kick']:
-            if 1 <= self.current_anim.frame <= 3:
-                if hitrect.colliderect(enemy):
-                    enemy.damage(4)
-                    enemy.change_state('hurt')
-                    self.game.hit_pause(4)
-                    self.game.screen_shake = 4
  
         elif self.current_state == self.states['barrage']:
             if self.current_anim.frame % 2 == 0:
                 if hitrect.colliderect(enemy):
-                    enemy.damage(1)
+                    enemy.damage(14)
                     enemy.change_state('hurt')
                     self.game.screen_shake = 10
  

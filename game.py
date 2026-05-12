@@ -26,7 +26,7 @@ class Game():
         self.tile_size = Vector2(32, 32)
         self.tile_layout = Vector2(6,4).elementwise() * self.tile_size
         self.window_size = Vector2(16, 10).elementwise() * self.cell_size
-        self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)))
+        self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)), pygame.SCALED, pygame.FULLSCREEN)
         self.surface = pygame.Surface((int(self.tile_layout.x), int(self.tile_layout.y)))
  
         pygame.display.set_caption('Thugs Invasion Thugs Evasion (TITE)')
@@ -62,12 +62,12 @@ class Game():
         self.game_state = GameState('title_screen')
  
         self.states = {
-            'test_world'  : Test(self.tile_size, self.player, self),
+            'test_world' : Test(self.tile_size, self.player, self),
             'title_screen': TitleScreen(self.tile_size, self.surface, self.game_state),
-            'controls'    : ControlsScreen(self.tile_size, self.surface, self.game_state, self),
-            'level1'      : LevelUno(self.player, self.tile_size, self.actions, self),
-            'level2'      : LevelDos(self.player, self.tile_size, self.actions, self),
-            'credits'     : Credits(self.tile_size, self.surface, self.game_state, self)
+            'controls' : ControlsScreen(self.tile_size, self.surface, self.game_state, self),
+            'level1' : LevelUno(self.player, self.tile_size, self.actions, self),
+            'level2' : LevelDos(self.player, self.tile_size, self.actions, self),
+            'credits' : Credits(self.tile_size, self.surface, self.game_state, self)
         }
  
     def reload_level(self, level_name):
