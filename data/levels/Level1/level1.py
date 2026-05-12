@@ -59,6 +59,7 @@ class LevelUno():
         self.assets = {
             'bg' : load_image('levels/level1/bg.png'),
             'color' : load_image('levels/level1/color.png'),
+            'clouds' : load_image('levels/level1/clouds.png'),
             'fog' : load_image('levels/level1/fog.png'),
  
             'ground' : load_image('levels/level1/ground.png'),
@@ -167,6 +168,7 @@ class LevelUno():
  
         for i in range(5):
             surface.blit(self.assets['bg'], (bg1.x + i * self.assets['bg'].get_width(), bg1.y))
+            surface.blit(self.assets['bg'], (main.x + i * self.assets['clouds'].get_width(), main.y))
             surface.blit(self.assets['treebg'], (bg2.x + i * self.assets['treebg'].get_width(), bg2.y))
             surface.blit(self.assets['bushbg'], (bg3.x + i * self.assets['bushbg'].get_width(), bg3.y))
             surface.blit(self.assets['treemg'], (mg1.x + i * self.assets['treemg'].get_width(), mg1.y))
@@ -174,6 +176,7 @@ class LevelUno():
         self.assets['rain-mg'].play(surface, scroll, False)
         
         for i in range(5):
+            surface.blit(self.assets['treefg'], (mg2.x + i * self.assets['fog'].get_width(), mg2.y))
             surface.blit(self.assets['treefg'], (fg1.x + i * self.assets['treefg'].get_width(), mg1.y))
             surface.blit(self.assets['bushmg'], (fg2.x + i * self.assets['bushmg'].get_width(), fg2.y))
             surface.blit(self.assets['fog'], (mg2.x + i * self.assets['fog'].get_width(), mg2.y))

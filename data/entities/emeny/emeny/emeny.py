@@ -26,8 +26,7 @@ class Emeny(PhysicsEntity):
         self.rage_range = 40
         self.rage_duration = 3.0
         self.rage_start_time = 0
- 
-        # Track whether the enemy was mid-attack when hurt interrupted them
+
         self.interrupted_attack = False
  
         print(self.health, self.alive)
