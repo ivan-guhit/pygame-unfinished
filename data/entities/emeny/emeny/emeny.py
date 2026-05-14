@@ -48,6 +48,10 @@ class Emeny(PhysicsEntity):
             'attack' : Animation(0.25, self.pos, 0, self.anim_size, load_image('enemy/fentanyl/attack.png'), 25),
             'death'  : Animation(0.25, self.pos, 0, self.anim_size, load_image('enemy/fentanyl/dead.png'), 8, False),
             'fall'   : Animation(0.25, self.pos, 0, self.anim_size, load_image('enemy/fentanyl/fall.png'), 0),
+
+            'block'   : Animation(0.25, self.pos, 0, self.anim_size, load_image('enemy/fentanyl/block.png'), 0),
+            'down'   : Animation(0.25, self.pos, 0, self.anim_size, load_image('enemy/fentanyl/down.png'), 12),
+            'stand_up'   : Animation(0.25, self.pos, 0, self.anim_size, load_image('enemy/fentanyl/stand_up.png'), 8),
         }
  
         self.hurt = [self.anim['hurt1'], self.anim['hurt2'], self.anim['hurt1']]

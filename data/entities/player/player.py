@@ -52,22 +52,31 @@ class Player(PhysicsEntity):
             'turn' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/turn.png'), 7),
             'hurt' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/hurt.png'), 3),
             'dead' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/dead.png'), 6, False),
-            'light_attack_basic' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_basic.png'), 4),
-            'light_attack_1' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_1.png'), 6),
-            'light_attack_2' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_2.png'), 5),
-            'light_attack_3' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_3.png'), 5),
-            'low_kick' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_3.png'), 5),
+
+            'light_attack_1' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_1.png'), 4),
+            'light_attack_2' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/light_attack_2.png'), 6),
+
+            'heavy_attack_1' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/heavy_attack_1.png'), 8),
+            'heavy_attack_2' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/heavy_attack_2.png'), 7),
+            'heavy_attack_3' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/heavy_attack_3.png'), 5),
+
+            'low_kick' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/low_kick.png'), 7),
             'grab' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/grab.png'), 8),
             'barrage' : Animation(0.25, self.pos, 0, self.anim_size, load_image('player/playeranim/barrage.png'), 16),
         }
  
         self.basic_attack = [
-            self.anim['light_attack_basic'],
-            self.anim['light_attack_basic'],
+            self.anim['light_attack_1'],
             self.anim['light_attack_1'],
             self.anim['light_attack_2'],
-            self.anim['light_attack_3'],
         ]
+
+        self.heavy_attack = [
+            self.anim['heavy_attack_1'],
+            self.anim['heavy_attack_2'],
+            self.anim['heavy_attack_3'],
+        ]
+ 
  
         self.current_anim  = self.anim['idle']
         self.current_state = self.states['idle']
