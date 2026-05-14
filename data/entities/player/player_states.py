@@ -33,7 +33,8 @@ class Idle(State):
             self.entity.change_state("low_kick")
  
    
-        elif self.entity.combo_buffer[-3:] == ["S", "D", "J"]:
+
+        elif self.entity.combo_buffer[-3:] == (["S", "A", "J"] if self.entity.flip else ["S", "D", "J"]):
             self.entity.combo_buffer.clear()
             self.entity.change_state("barrage")
  
@@ -73,6 +74,7 @@ class Move(State):
         self.entity.current_anim.reset()
  
     def update(self, dt):
+
         if not self.entity.actions['left'] and not self.entity.actions['right']:
             self.entity.change_state('idle')
  
@@ -82,6 +84,25 @@ class Move(State):
         if self.entity.combo_buffer[-1:] == ["SPACE"] and self.entity.dash_cooldown <= 0:
             self.entity.combo_buffer.clear()
             self.entity.change_state('dash')
+        
+        if self.entity.combo_buffer[-2:] == ["S", "J"]:
+            self.entity.combo_buffer.clear()
+            self.entity.change_state("grab")
+ 
+        elif self.entity.combo_buffer[-2:] == ["S", "K"]:
+            self.entity.combo_buffer.clear()
+            self.entity.change_state("low_kick")
+   
+            
+        elif self.entity.combo_buffer[-3:] == (["S", "A", "J"] if self.entity.flip else ["S", "D", "J"]):
+            self.entity.combo_buffer.clear()
+            self.entity.change_state("barrage")
+ 
+        elif self.entity.actions['light_attack']:
+            self.entity.change_state('light_attack')
+ 
+        elif self.entity.actions['heavy_attack']:
+            self.entity.change_state('heavy_attack')
  
         if self.entity.actions['flipped']:
             self.entity.turn_toggle = not self.entity.turn_toggle
@@ -130,12 +151,7 @@ class Hurt(State):
             self.entity.change_state('dead')
  
  
-def _clamp_attack_movement(entity):
-    if entity.velocity.x > ATTACK_MOVE_SPEED:
-        entity.velocity.x = ATTACK_MOVE_SPEED
-    elif entity.velocity.x < -ATTACK_MOVE_SPEED:
-        entity.velocity.x = -ATTACK_MOVE_SPEED
- 
+
  
 class LightAttack(State):
  
@@ -147,7 +163,6 @@ class LightAttack(State):
         self.entity.current_anim.reset()
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
  
         if self.entity.current_anim.frame >= 2:
             self.combo_window = True
@@ -186,7 +201,6 @@ class HeavyAttack(State):
         self.entity.current_anim.reset()
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
  
         if self.entity.current_anim.frame >= 2:
             self.combo_window = True
@@ -226,15 +240,14 @@ class KnockbackFinisher(State):
         self.wants_barrage = False
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
  
         if not self.applied and self.entity.current_anim.frame >= 3:
             self.entity.knockback_combo(self.KNOCKBACK_POWER)
             self.applied = True
             self.entity.game.screen_shake = 8
  
-        # listen for barrage combo input after the hit lands
-        if self.applied and self.entity.combo_buffer[-3:] == ["S", "D", "J"]:
+        _barrage_combo = ["S", "A", "J"] if self.entity.flip else ["S", "D", "J"]
+        if self.applied and self.entity.combo_buffer[-3:] == _barrage_combo:
             self.wants_barrage = True
             self.entity.combo_buffer.clear()
  
@@ -258,12 +271,12 @@ class HeavyFinisher(State):
         self.applied = False
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
+
  
         if not self.applied and self.entity.current_anim.frame >= 2:
             self.entity.heavy_damage_combo(self.BONUS_DAMAGE)
             self.applied = True
-            self.entity.game.screen_shake = 6
+            self.entity.game.screen_shake = 17
  
         if self.entity.current_anim.finished:
             self.entity.attack_pos = 0
@@ -292,11 +305,12 @@ class LowKick(State):
         self.applied = False
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
+
  
         if not self.applied and self.entity.current_anim.frame >= 2:
             self.entity.low_kick_hit()
             self.applied = True
+
  
         if self.entity.current_anim.finished:
             self.entity.change_state('idle')
@@ -307,7 +321,7 @@ class LowKick(State):
 
 class PostKnockback(State):
 
-    WAIT_FRAMES = 30  # input window in frames
+    WAIT_FRAMES = 30  
 
     def enter(self):
         self.entity.current_anim = self.entity.anim['idle']
@@ -317,7 +331,8 @@ class PostKnockback(State):
     def update(self, dt):
         self.timer -= 1
 
-        if self.entity.combo_buffer[-3:] == ["S", "D", "J"]:
+        _barrage_combo = ["S", "A", "J"] if self.entity.flip else ["S", "D", "J"]
+        if self.entity.combo_buffer[-3:] == _barrage_combo:
             self.entity.combo_buffer.clear()
             self.entity.change_state('chase_for_barrage')
             return
@@ -331,7 +346,7 @@ class PostKnockback(State):
  
 class ChaseForBarrage(State):
  
-    CHASE_SPEED  = 1.5
+    CHASE_SPEED = 5
     CLOSE_ENOUGH = 20
  
     def enter(self):
@@ -369,25 +384,24 @@ class ChaseForBarrage(State):
  
 class Grab(State):
  
-    GRAB_RANGE    = 25
-    GRAB_DAMAGE   = 10
-    SHOVE_POWER   = 3
+    GRAB_RANGE = 5
+    GRAB_DAMAGE = 0
+    SHOVE_POWER = 7
     SHOVE_DURATION = 4
  
     def enter(self):
         self.entity.current_anim = self.entity.anim['grab']
         self.entity.current_anim.reset()
         self.entity.velocity.x = 0
-        self.grabbed      = False
+        self.grabbed = False
         self.target_enemy = None
         self.shove_timer  = 0
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
  
         if self.grabbed and self.target_enemy and self.shove_timer == 0:
             hold_offset = 12 if not self.entity.flip else -12
-            self.target_enemy.pos.x      = self.entity.pos.x + hold_offset
+            self.target_enemy.pos.x = self.entity.pos.x + hold_offset
             self.target_enemy.velocity.x = 0
             self.target_enemy.velocity.y = 0
  
@@ -398,7 +412,7 @@ class Grab(State):
             shove_dir = 1 if self.entity.flip else -1
             self.target_enemy.velocity.x = shove_dir * self.SHOVE_POWER
  
-            self.entity.flip        = not self.entity.flip
+            self.entity.flip = not self.entity.flip
             self.entity.turn_toggle = self.entity.flip
  
         if self.shove_timer > 0:
@@ -428,7 +442,6 @@ class Barrage(State):
         self.entity.current_anim.reset()
  
     def update(self, dt):
-        _clamp_attack_movement(self.entity)
  
         if self.entity.current_anim.finished:
             self.entity.barrage_cooldown = self.BARRAGE_COOLDOWN
@@ -438,30 +451,45 @@ class Barrage(State):
 class Dash(State):
  
     DASH_DURATION = 6
-    DASH_SPEED    = 2.4
+    DASH_SPEED = 2.4
     DASH_COOLDOWN = 45
  
     def enter(self):
         self.entity.current_anim = self.entity.anim['jump']
         self.entity.current_anim.reset()
  
-        self.timer    = self.DASH_DURATION
+        self.timer = self.DASH_DURATION
         self.dash_dir = -1 if self.entity.flip else 1
  
-        self.entity.velocity.x   = self.dash_dir * self.DASH_SPEED
+        self.entity.velocity.x = self.dash_dir * self.DASH_SPEED
         self.entity.dash_cooldown = self.DASH_COOLDOWN
-        self.entity.invincible    = True
+        self.entity.invincible = True
  
     def update(self, dt):
         self.entity.velocity.x = self.dash_dir * self.DASH_SPEED
         self.timer -= 1
- 
+
+        # Allow flipping direction mid-dash
+        if self.entity.actions['flipped']:
+            self.entity.turn_toggle = not self.entity.turn_toggle
+            self.entity.flip = self.entity.turn_toggle
+            self.dash_dir = -1 if self.entity.flip else 1
+            self.entity.actions['flipped'] = False
+
+        # Allow attacking out of dash early
+        if self.entity.actions['light_attack']:
+            self.entity.change_state('light_attack')
+            return
+        if self.entity.actions['heavy_attack']:
+            self.entity.change_state('heavy_attack')
+            return
+
         if self.timer <= 0:
             self.entity.velocity.x = 0
             self.entity.change_state(
                 'move' if (self.entity.actions['left'] or self.entity.actions['right'])
                 else 'idle'
             )
- 
+
     def exit(self):
         self.entity.invincible = False

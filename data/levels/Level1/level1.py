@@ -25,6 +25,10 @@ class LevelUno():
             "oh god pls no!",
         ])
 
+        # Give the cutscene a reference to the player so it can render
+        # the speech bubble above their head.
+        self.cutscene.player = self.player
+
         self.cutscene_triggered = True
         self.cutscene.start()
 
@@ -206,11 +210,9 @@ class LevelUno():
  
         if self.level_complete:
             text = self.custom_font.render('Go! >', True, (255, 255, 255))
-
             surface.blit(pygame.transform.scale(text, (self.nl_size.x, self.nl_size.y)), (self.nl_pos.x, self.nl_pos.y))
-        
-        self.cutscene.render(surface, self.custom_font)
 
-
-
-        
+    def render_hud(self, window):
+        # Draw the cutscene speech bubble on the full-res window so text is crisp
+        if self.cutscene.active:
+            self.cutscene.render_hud(window, self.game.scroll, self.game.surface)

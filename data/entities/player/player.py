@@ -13,22 +13,26 @@ class Player(PhysicsEntity):
     def __init__(self, game, health, e_type, pos, size, tile_size, actions):
         super().__init__(game, health, e_type, pos, size, tile_size)
  
-        self.actions   = actions
+        self.actions = actions
         self.attack_pos = 0
-        self.game      = game
-        self.friction  = 0.32
+        self.game = game
+        self.friction = 0.32
         self.tile_size = tile_size
  
         self.health = health
-        self.alive  = True
+        self.alive = True
         self.hitting = False
+
+        # Tracks whether the current attack state has already landed a hit
+        # on a specific enemy this swing — reset when state changes.
+        self._attack_hit_this_swing = set()
  
-        self.invincible    = False
+        self.invincible = False
         self.dash_cooldown = 0
         self.barrage_cooldown = 0          
  
-        self.combo_buffer   = []
-        self.combo_timer    = 0
+        self.combo_buffer = []
+        self.combo_timer = 0
         self.combo_max_time = 20
  
         self.states = {
@@ -94,7 +98,7 @@ class Player(PhysicsEntity):
         self.health = 100
         self.alive = True
         self.pos.x = 1 * self.tile_size.x
-        self.pos.y     = 3 * self.tile_size.y
+        self.pos.y = 3 * self.tile_size.y
         self.velocity.x = 0
         self.velocity.y = 0
         self.attack_pos = 0
@@ -102,6 +106,7 @@ class Player(PhysicsEntity):
         self.invincible = False
         self.dash_cooldown = 0
         self.barrage_cooldown = 0
+        self._attack_hit_this_swing = set()
         self.change_state('idle')
  
  
@@ -128,17 +133,47 @@ class Player(PhysicsEntity):
                 enemies.append(enemy)
         return enemies
  
+    def _finisher_target(self, reach=20):
+        """Return the single closest enemy within the finisher hitbox
+        AND in front of the player. Returns None if no valid target."""
+        if self.flip:
+            hit_rect = pygame.Rect(self.p_rect.left - reach, self.p_rect.y, reach, self.p_rect.height)
+        else:
+            hit_rect = pygame.Rect(self.p_rect.right, self.p_rect.y, reach, self.p_rect.height)
+
+        state = self.game.game_state.get_state()
+        level = self.game.states.get(state)
+        if level is None or not hasattr(level, 'enemies'):
+            return None
+
+        closest = None
+        closest_dist = float('inf')
+        for enemy in level.enemies:
+            if not enemy.alive:
+                continue
+            if not hit_rect.colliderect(enemy.p_rect):
+                continue
+            dist = abs(enemy.pos.x - self.pos.x)
+            if dist < closest_dist:
+                closest_dist = dist
+                closest = enemy
+        return closest
+
     def knockback_combo(self, power):
         direction = -1 if self.flip else 1
-        for enemy in self._nearby_enemies():
-            enemy.velocity.x = direction * power
-            enemy.change_state('hurt')
- 
+        target = self._finisher_target()
+        if target is not None:
+            target.velocity.x = direction * power
+            target.change_state('hurt')
+            self._notify_tutorial('knockback_finisher')
+
     def heavy_damage_combo(self, bonus_damage):
-        for enemy in self._nearby_enemies():
-            enemy.damage(bonus_damage)
-            enemy.change_state('hurt')
+        target = self._finisher_target()
+        if target is not None:
+            target.damage(bonus_damage)
+            target.change_state('hurt')
             self.game.hit_pause(8)
+            self._notify_tutorial('heavy_finisher')
  
     def low_kick_hit(self, reach=30):
  
@@ -149,7 +184,7 @@ class Player(PhysicsEntity):
         if level is None or not hasattr(level, 'enemies'):
             return
  
-        closest      = None
+        closest = None
         closest_dist = float('inf')
         for enemy in level.enemies:
             if not enemy.alive:
@@ -167,7 +202,8 @@ class Player(PhysicsEntity):
         closest.damage(5)
         self.hitting = True
         self.game.hit_pause(5)
-        self.game.screen_shake = 5
+        self.game.screen_shake = 8
+        self._notify_tutorial('hit')
  
         if hasattr(closest, 'states') and 'down' in closest.states:
             closest.change_state('down')
@@ -179,26 +215,35 @@ class Player(PhysicsEntity):
             hitrect = pygame.Rect(((self.p_rect.x + self.p_rect.width) - 5), self.p_rect.y, 5, 30)
         elif self.turn_toggle == True:
             hitrect = pygame.Rect((self.p_rect.x + 3), self.p_rect.y, 5, 30)
+
+        enemy_id = id(enemy)
  
         if self.current_state == self.states['light_attack']:
+            # Only register hits during the active hit window (frames 1-2)
+            # and only if we haven't already hit this enemy in this swing
             if 1 <= self.current_anim.frame <= 2:
-                if hitrect.colliderect(enemy):
+                if hitrect.colliderect(enemy) and enemy_id not in self._attack_hit_this_swing:
+                    self._attack_hit_this_swing.add(enemy_id)
                     enemy.damage(7)
                     enemy.change_state('hurt')
                     self.hitting = True
                     self.game.hit_pause(5)
                     self.game.screen_shake = 5
+                    self._notify_tutorial('hit')
             else:
+                # Outside hit window: slow enemy but no damage
                 enemy.velocity.x *= 0.5
  
         elif self.current_state == self.states['heavy_attack']:
             if 1 <= self.current_anim.frame <= 2:
-                if hitrect.colliderect(enemy):
+                if hitrect.colliderect(enemy) and enemy_id not in self._attack_hit_this_swing:
+                    self._attack_hit_this_swing.add(enemy_id)
                     enemy.damage(7)
                     enemy.change_state('hurt')
                     self.hitting = True
                     self.game.hit_pause(5)
                     self.game.screen_shake = 5
+                    self._notify_tutorial('hit')
             else:
                 enemy.velocity.x *= 0.5
  
@@ -215,6 +260,7 @@ class Player(PhysicsEntity):
                     grab_state.target_enemy = enemy
                     enemy.change_state('hurt')
                     self.game.hit_pause(5)
+                    self._notify_tutorial('hit')
  
         elif self.current_state == self.states['barrage']:
             if self.current_anim.frame % 2 == 0:
@@ -222,6 +268,7 @@ class Player(PhysicsEntity):
                     enemy.damage(14)
                     enemy.change_state('hurt')
                     self.game.screen_shake = 5
+                    self._notify_tutorial('hit')
  
  
     def register_input(self, key):
@@ -230,7 +277,24 @@ class Player(PhysicsEntity):
             self.combo_buffer.pop(0)
         self.combo_timer = self.combo_max_time
  
+    def _notify_tutorial(self, kind='hit'):
+        """Inform the tutorial about a successful hit, if we're in tutorial."""
+        state = self.game.game_state.get_state()
+        tut = self.game.states.get(state)
+        if tut is None or not hasattr(tut, 'notify_hit'):
+            return
+        if kind == 'knockback_finisher':
+            tut.notify_knockback_finisher_hit()
+        elif kind == 'heavy_finisher':
+            tut.notify_heavy_finisher_hit()
+        else:
+            tut.notify_hit()
+
     def change_state(self, state_name):
+        # Clear the per-swing hit set whenever we enter a new attack state
+        if state_name in ('light_attack', 'heavy_attack', 'grab', 'barrage',
+                          'knockback_finisher', 'heavy_finisher', 'low_kick'):
+            self._attack_hit_this_swing = set()
         return super().change_state(state_name)
  
  

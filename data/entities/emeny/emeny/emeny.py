@@ -96,6 +96,8 @@ class Emeny(PhysicsEntity):
         self.health -= hit
         print(self.health)
 
+        self.velocity.x = 0
+
         if self.health <= 0:
             self.change_state('death')
         else:
