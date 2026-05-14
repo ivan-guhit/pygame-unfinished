@@ -26,7 +26,7 @@ class Game():
         self.tile_size  = Vector2(32, 32)
         self.tile_layout = Vector2(6, 4).elementwise() * self.tile_size
         self.window_size = Vector2(16, 10).elementwise() * self.cell_size
-        self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)), pygame.SCALED, pygame.FULLSCREEN,)
+        self.window = pygame.display.set_mode((int(self.window_size.x), int(self.window_size.y)), pygame.SCALED | pygame.FULLSCREEN,)
         self.surface = pygame.Surface((int(self.tile_layout.x), int(self.tile_layout.y)))
  
         pygame.display.set_caption('Thugs Invasion Thugs Evasion (TITE)')
