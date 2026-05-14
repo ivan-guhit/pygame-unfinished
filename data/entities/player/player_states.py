@@ -469,14 +469,14 @@ class Dash(State):
         self.entity.velocity.x = self.dash_dir * self.DASH_SPEED
         self.timer -= 1
 
-        # Allow flipping direction mid-dash
+
         if self.entity.actions['flipped']:
             self.entity.turn_toggle = not self.entity.turn_toggle
             self.entity.flip = self.entity.turn_toggle
             self.dash_dir = -1 if self.entity.flip else 1
             self.entity.actions['flipped'] = False
 
-        # Allow attacking out of dash early
+
         if self.entity.actions['light_attack']:
             self.entity.change_state('light_attack')
             return

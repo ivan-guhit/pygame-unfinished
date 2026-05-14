@@ -219,8 +219,7 @@ class Player(PhysicsEntity):
         enemy_id = id(enemy)
  
         if self.current_state == self.states['light_attack']:
-            # Only register hits during the active hit window (frames 1-2)
-            # and only if we haven't already hit this enemy in this swing
+ 
             if 1 <= self.current_anim.frame <= 2:
                 if hitrect.colliderect(enemy) and enemy_id not in self._attack_hit_this_swing:
                     self._attack_hit_this_swing.add(enemy_id)
@@ -231,7 +230,6 @@ class Player(PhysicsEntity):
                     self.game.screen_shake = 5
                     self._notify_tutorial('hit')
             else:
-                # Outside hit window: slow enemy but no damage
                 enemy.velocity.x *= 0.5
  
         elif self.current_state == self.states['heavy_attack']:
@@ -278,7 +276,7 @@ class Player(PhysicsEntity):
         self.combo_timer = self.combo_max_time
  
     def _notify_tutorial(self, kind='hit'):
-        """Inform the tutorial about a successful hit, if we're in tutorial."""
+
         state = self.game.game_state.get_state()
         tut = self.game.states.get(state)
         if tut is None or not hasattr(tut, 'notify_hit'):
@@ -291,9 +289,8 @@ class Player(PhysicsEntity):
             tut.notify_hit()
 
     def change_state(self, state_name):
-        # Clear the per-swing hit set whenever we enter a new attack state
-        if state_name in ('light_attack', 'heavy_attack', 'grab', 'barrage',
-                          'knockback_finisher', 'heavy_finisher', 'low_kick'):
+
+        if state_name in ('light_attack', 'heavy_attack', 'grab', 'barrage', 'knockback_finisher', 'heavy_finisher', 'low_kick'):
             self._attack_hit_this_swing = set()
         return super().change_state(state_name)
  

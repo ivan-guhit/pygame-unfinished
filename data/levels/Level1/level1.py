@@ -25,8 +25,7 @@ class LevelUno():
             "oh god pls no!",
         ])
 
-        # Give the cutscene a reference to the player so it can render
-        # the speech bubble above their head.
+
         self.cutscene.player = self.player
 
         self.cutscene_triggered = True
@@ -90,8 +89,7 @@ class LevelUno():
                 grid_pos = Vector2(j, i)
                 self.tilemap[str(0 + i) + str(0 + j)] = {'type': 'ground', 'sprite_offsetX' : j, 'sprite_offsetY': i, 'pos': grid_pos.elementwise() * tile_size}
  
-        self.collisions = [Rect(int(self.col_pos.x - self.tile_size.x), int(self.col_pos.y - self.tile_size.y), int(self.size.x), 32), 
-                           Rect(self.leftwall.x, 0, self.tile_size.x, int(self.size.y)),]
+        self.collisions = [Rect(int(self.col_pos.x - self.tile_size.x), int(self.col_pos.y - self.tile_size.y), int(self.size.x), 32), Rect(self.leftwall.x, 0, self.tile_size.x, int(self.size.y)),]
         
     def spawn_enemy(self):
         new_enemy = type(self.enemies[0])(self.player.game, 100, self.player, 'emeny', Vector2(500, 200), self.player.game.e_size, self.tile_size)  
@@ -213,6 +211,5 @@ class LevelUno():
             surface.blit(pygame.transform.scale(text, (self.nl_size.x, self.nl_size.y)), (self.nl_pos.x, self.nl_pos.y))
 
     def render_hud(self, window):
-        # Draw the cutscene speech bubble on the full-res window so text is crisp
         if self.cutscene.active:
             self.cutscene.render_hud(window, self.game.scroll, self.game.surface)
