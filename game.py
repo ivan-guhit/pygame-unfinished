@@ -87,8 +87,8 @@ class Game():
  
     def input_handle(self):
         current_state = self.game_state.get_state()
-        in_tutorial   = (current_state == 'tutorial')
-        in_cutscene   = (current_state == 'level1' and self.states['level1'].cutscene.active)
+        in_tutorial = (current_state == 'tutorial')
+        in_cutscene = (current_state == 'level1' and self.states['level1'].cutscene.active)
  
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

@@ -347,7 +347,7 @@ class PostKnockback(State):
 class ChaseForBarrage(State):
  
     CHASE_SPEED = 5
-    CLOSE_ENOUGH = 20
+    CLOSE_ENOUGH = 15
  
     def enter(self):
         self.entity.current_anim = self.entity.anim['move']

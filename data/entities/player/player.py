@@ -104,6 +104,7 @@ class Player(PhysicsEntity):
         self.attack_pos = 0
         self.down = False
         self.invincible = False
+        self.flip = False
         self.dash_cooldown = 0
         self.barrage_cooldown = 0
         self._attack_hit_this_swing = set()
