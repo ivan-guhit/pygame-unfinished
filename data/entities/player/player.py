@@ -23,8 +23,6 @@ class Player(PhysicsEntity):
         self.alive = True
         self.hitting = False
 
-        # Tracks whether the current attack state has already landed a hit
-        # on a specific enemy this swing — reset when state changes.
         self._attack_hit_this_swing = set()
  
         self.invincible = False
@@ -171,10 +169,24 @@ class Player(PhysicsEntity):
     def heavy_damage_combo(self, bonus_damage):
         target = self._finisher_target()
         if target is not None:
-            target.damage(bonus_damage)
-            target.change_state('hurt')
-            self.game.hit_pause(8)
-            self._notify_tutorial('heavy_finisher')
+            # If the enemy is rage-blocking, the K K K J combo is the only
+            # thing that can break it — signal the state and deal no bonus dmg.
+            if (hasattr(target, 'states') and
+                    target.current_state == target.states.get('rage_block')):
+                target.rage_block_broken = True
+                self.game.hit_pause(8)
+                self._notify_tutorial('rage_block_broken')
+            elif (hasattr(target, 'states') and
+                    target.current_state == target.states.get('block')):
+                # Feed the finisher into the block combo tracker so K K K J
+                # (three heavy hits + HeavyFinisher) breaks the block.
+                target.states['block'].register_block_hit('heavy')
+                self.game.hit_pause(8)
+            else:
+                target.damage(bonus_damage, hit_type='heavy')
+                target.change_state('hurt')
+                self.game.hit_pause(8)
+                self._notify_tutorial('heavy_finisher')
  
     def low_kick_hit(self, reach=30):
  
@@ -200,16 +212,17 @@ class Player(PhysicsEntity):
         if closest is None:
             return
  
-        closest.damage(5)
+        absorbed = closest.damage(5, hit_type='low_kick')
         self.hitting = True
         self.game.hit_pause(5)
         self.game.screen_shake = 8
         self._notify_tutorial('hit')
- 
-        if hasattr(closest, 'states') and 'down' in closest.states:
-            closest.change_state('down')
-        else:
-            closest.change_state('hurt')
+
+        if not absorbed:
+            if hasattr(closest, 'states') and 'down' in closest.states:
+                closest.change_state('down')
+            else:
+                closest.change_state('hurt')
  
     def attack(self, enemy):
         if self.turn_toggle == False:
@@ -224,12 +237,17 @@ class Player(PhysicsEntity):
             if 1 <= self.current_anim.frame <= 2:
                 if hitrect.colliderect(enemy) and enemy_id not in self._attack_hit_this_swing:
                     self._attack_hit_this_swing.add(enemy_id)
-                    enemy.damage(7)
-                    enemy.change_state('hurt')
+                    was_blocking = hasattr(enemy, '_is_blocking') and enemy._is_blocking()
+                    absorbed = enemy.damage(7, hit_type='light')
+                    if not absorbed:
+                        enemy.change_state('hurt')
                     self.hitting = True
                     self.game.hit_pause(5)
                     self.game.screen_shake = 5
-                    self._notify_tutorial('hit')
+                    if was_blocking and hasattr(enemy, '_player_is_behind') and enemy._player_is_behind():
+                        self._notify_tutorial('behind_hit')
+                    else:
+                        self._notify_tutorial('hit')
             else:
                 enemy.velocity.x *= 0.5
  
@@ -237,15 +255,20 @@ class Player(PhysicsEntity):
             if 1 <= self.current_anim.frame <= 2:
                 if hitrect.colliderect(enemy) and enemy_id not in self._attack_hit_this_swing:
                     self._attack_hit_this_swing.add(enemy_id)
-                    enemy.damage(7)
-                    enemy.change_state('hurt')
+                    was_blocking = hasattr(enemy, '_is_blocking') and enemy._is_blocking()
+                    absorbed = enemy.damage(7, hit_type='heavy')
+                    if not absorbed:
+                        enemy.change_state('hurt')
                     self.hitting = True
                     self.game.hit_pause(5)
                     self.game.screen_shake = 5
-                    self._notify_tutorial('hit')
+                    if was_blocking and hasattr(enemy, '_player_is_behind') and enemy._player_is_behind():
+                        self._notify_tutorial('behind_hit')
+                    else:
+                        self._notify_tutorial('hit')
             else:
                 enemy.velocity.x *= 0.5
- 
+
         elif self.current_state == self.states['grab']:
             grab_state = self.states['grab']
             if not grab_state.grabbed and 1 <= self.current_anim.frame <= 3:
@@ -264,10 +287,15 @@ class Player(PhysicsEntity):
         elif self.current_state == self.states['barrage']:
             if self.current_anim.frame % 2 == 0:
                 if hitrect.colliderect(enemy):
-                    enemy.damage(14)
-                    enemy.change_state('hurt')
+                    was_blocking = hasattr(enemy, '_is_blocking') and enemy._is_blocking()
+                    absorbed = enemy.damage(14, hit_type='barrage')
+                    if not absorbed:
+                        enemy.change_state('hurt')
                     self.game.screen_shake = 5
-                    self._notify_tutorial('hit')
+                    if was_blocking and hasattr(enemy, '_player_is_behind') and enemy._player_is_behind():
+                        self._notify_tutorial('behind_hit')
+                    else:
+                        self._notify_tutorial('hit')
  
  
     def register_input(self, key):
@@ -276,7 +304,7 @@ class Player(PhysicsEntity):
             self.combo_buffer.pop(0)
         self.combo_timer = self.combo_max_time
  
-    def _notify_tutorial(self, kind='hit'):
+    def _notify_tutorial(self, kind='hit', enemy=None):
 
         state = self.game.game_state.get_state()
         tut = self.game.states.get(state)
@@ -286,6 +314,12 @@ class Player(PhysicsEntity):
             tut.notify_knockback_finisher_hit()
         elif kind == 'heavy_finisher':
             tut.notify_heavy_finisher_hit()
+        elif kind == 'rage_block_broken':
+            if hasattr(tut, 'notify_rage_block_broken'):
+                tut.notify_rage_block_broken()
+        elif kind == 'behind_hit':
+            if hasattr(tut, 'notify_behind_hit'):
+                tut.notify_behind_hit()
         else:
             tut.notify_hit()
 

@@ -191,7 +191,7 @@ class Game():
             self.reload_level('level2')
             self.game_state.set_state('title_screen')
  
-        target_x = self.player.rect().centerx - self.surface.get_width()  / 2
+        target_x = self.player.rect().centerx - self.surface.get_width() / 2
         target_y = self.player.rect().centery  - self.surface.get_height() / 2
  
         self.scroll.x += (target_x - self.scroll.x) / 8

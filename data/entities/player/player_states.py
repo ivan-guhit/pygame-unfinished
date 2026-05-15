@@ -276,7 +276,7 @@ class HeavyFinisher(State):
         if not self.applied and self.entity.current_anim.frame >= 2:
             self.entity.heavy_damage_combo(self.BONUS_DAMAGE)
             self.applied = True
-            self.entity.game.screen_shake = 17
+            self.entity.game.screen_shake = 35
  
         if self.entity.current_anim.finished:
             self.entity.attack_pos = 0

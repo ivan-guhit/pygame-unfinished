@@ -5,7 +5,7 @@ from data.entities.emeny.emeny.emeny import Emeny
 
 
 
-BG_COLOUR    = (18,  8, 30)
+BG_COLOUR = (18,  8, 30)
 GROUND_COLOUR = (90, 40, 130)
 WORLD_W = 192
 WORLD_H = 128
@@ -20,8 +20,6 @@ BEHIND_OFFSET_X = -40
 
 E_SIZE = Vector2(20, 27)
 
-# All steps except the last are practice (dummy enemy, immortal).
-# The last step is a real fight — kill the enemy to proceed.
 STEPS = [
     {
         'label'       : 'MOVE: A or D',
@@ -31,21 +29,21 @@ STEPS = [
         'need_hit'    : False,
     },
     {
-        'label'       : 'JUMP: W',
-        'hint'        : '',
+        'label'       : 'JUMP W',
+        'hint'        : 'press w to jump',
         'goal'        : lambda t: t.player.current_state == t.player.states['jump'],
         'spawn_enemy' : False,
         'need_hit'    : False,
     },
     {
-        'label'       : 'LIGHT ATTACK: J',
+        'label'       : 'LIGHT ATTACK J',
         'hint'        : 'Hit the enemy!',
         'goal'        : lambda t: t._hit_landed,
         'spawn_enemy' : True,
         'need_hit'    : True,
     },
     {
-        'label'       : 'HEAVY ATTACK: K',
+        'label'       : 'HEAVY ATTACK K',
         'hint'        : 'Hit the enemy!',
         'goal'        : lambda t: t._hit_landed,
         'spawn_enemy' : True,
@@ -59,7 +57,7 @@ STEPS = [
         'need_hit'    : False,
     },
     {
-        'label'       : 'TURN: E  (enemy behind!)',
+        'label'       : 'TURN: E enemy behind!',
         'hint'        : 'Press E to face the other way',
         'goal'        : lambda t: t._turn_done,
         'spawn_enemy' : True,
@@ -81,7 +79,7 @@ STEPS = [
         'need_hit'    : True,
     },
     {
-        'label'       : 'BARRAGE (facing right): S D J',
+        'label'       : 'BARRAGE facing right: S D J',
         'hint'        : 'Input S, D, J in sequence',
         'goal'        : lambda t: t._hit_landed,
         'spawn_enemy' : True,
@@ -89,8 +87,8 @@ STEPS = [
         'behind'      : False,
     },
     {
-        'label'       : 'BARRAGE (facing left): S A J',
-        'hint'        : 'Turn around first (E), then S, A, J',
+        'label'       : 'BARRAGE facing left: S A J',
+        'hint'        : 'Turn around first E, then S, A, J',
         'goal'        : lambda t: t._hit_landed,
         'spawn_enemy' : True,
         'need_hit'    : True,
@@ -112,12 +110,27 @@ STEPS = [
     },
     {
         'label'       : 'COMBO: J J K then SDJ',
-        'hint'        : 'J J K then: facing right S D J  |  facing left S A J',
+        'hint'        : 'J J K then facing right S D J  |  facing left S A J',
         'goal'        : lambda t: t._knockback_finisher_hit and t._hit_landed,
         'spawn_enemy' : True,
         'need_hit'    : True,
     },
-    # ── FINAL STEP: real fight ───────────────────────────────────────────────
+    {
+        'label'       : 'RAGE BLOCK: K K K J to break it!',
+        'hint'        : 'Enemy blocks at low HP — only K K K J breaks it!',
+        'goal'        : lambda t: t._rage_block_broken,
+        'spawn_enemy' : True,
+        'rage_block'  : True,
+        'need_hit'    : True,
+    },
+    {
+        'label'       : 'GET BEHIND: attack from the back!',
+        'hint'        : 'Enemy blocks — dash behind and hit it!',
+        'goal'        : lambda t: t._behind_hit_landed,
+        'spawn_enemy' : True,
+        'behind_block': True,
+        'need_hit'    : True,
+    },
     {
         'label'       : 'FINAL TEST: defeat the enemy!',
         'hint'        : 'Use everything you learned',
@@ -133,10 +146,11 @@ FINAL_STEP = len(STEPS) - 1
 
 class Tutorial:
     def __init__(self, player, tile_size, actions, game):
-        self.player    = player
+
+        self.player = player
         self.tile_size = tile_size
-        self.actions   = actions
-        self.game      = game
+        self.actions = actions
+        self.game = game
 
         self.size = Vector2(WORLD_W, WORLD_H)
 
@@ -146,71 +160,85 @@ class Tutorial:
         self.font_big  = pygame.font.Font('assets/fonts/yosterisland/yoster.ttf', 28)
         self.font_sm   = pygame.font.Font('assets/fonts/yosterisland/yoster.ttf', 16)
         self.font_warn = pygame.font.Font('assets/fonts/yosterisland/yoster.ttf', 36)
-        # Bigger font for the "L -> next step" prompt
         self.font_next = pygame.font.Font('assets/fonts/yosterisland/yoster.ttf', 24)
 
         self._blackout = pygame.Surface((win_w, win_h))
         self._blackout.fill((0, 0, 0))
 
-        self.collisions = [
-            Rect(0,            GROUND_Y, WORLD_W,          GROUND_H),
-            Rect(-tile_size.x, 0,        int(tile_size.x), WORLD_H),
-            Rect(WORLD_W,      0,        int(tile_size.x), WORLD_H),
+        self.collisions = [Rect(0, GROUND_Y, WORLD_W, GROUND_H), Rect(-tile_size.x, 0, int(tile_size.x), WORLD_H), Rect(WORLD_W, 0, int(tile_size.x), WORLD_H),
         ]
 
-        self.step_index        = 0
-        self.step_done         = False
-        self.waiting           = False
-        self._turn_done        = False
+        self.step_index  = 0
+        self.step_done = False
+        self.waiting  = False
+        self._turn_done  = False
         self._final_enemy_dead = False
+        self._final_cleared = False
 
-        # After the final enemy is killed, player must walk to the right edge
-        self._final_cleared    = False
+        self._hit_landed = False
+        self._knockback_finisher_hit = False
+        self._heavy_finisher_hit = False
+        self._rage_block_broken = False
+        self._behind_hit_landed = False
 
-        # Hit-tracking flags — reset each step, set by notify_*() methods
-        self._hit_landed             = False   # any attack connected
-        self._knockback_finisher_hit = False   # J J K finisher connected
-        self._heavy_finisher_hit     = False   # K K K J finisher connected
 
-        FADE_DURATION    = 0.4
-        self._fading     = False
-        self._fade_t     = 0.0
-        self._fade_dur   = FADE_DURATION
+        self._rage_step_failed = False
+
+        FADE_DURATION = 0.4
+        self._fading = False
+        self._fade_t = 0.0
+        self._fade_dur = FADE_DURATION
         self._fade_alpha = 255
 
-        self._outro       = False
-        self._outro_t     = 0.0
-        self._outro_dur   = 1.2
+        self._outro = False
+        self._outro_t = 0.0
+        self._outro_dur = 1.2
         self._outro_alpha = 0
 
-        # ── skip-warning overlay ─────────────────────────────────────────────
-        self._warn_active       = False
-        self._warn_timer        = 0.0
-        self._warn_dur          = 2.5      # seconds warning stays visible
-        self._warn_fade_in      = 0.3      # seconds to fade in
-        self._warn_alpha        = 0
-        # Second ENTER press while warning is showing skips immediately
+        self._warn_active = False
+        self._warn_timer = 0.0
+        self._warn_dur  = 2.5
+        self._warn_fade_in = 0.3
+        self._warn_alpha  = 0
+
         self._warn_confirm_ready = False
 
         self.enemies: list = []
 
         self._start_step(0)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Helpers
-    # ─────────────────────────────────────────────────────────────────────────
 
-    def _spawn_enemy(self, behind=False, real_hp=False):
+    def _spawn_enemy(self, behind=False, real_hp=False, rage_hp=False, behind_block=False):
         offset  = BEHIND_OFFSET_X if behind else DUMMY_OFFSET_X
         spawn_x = max(E_SIZE.x, min(WORLD_W - E_SIZE.x, self.player.pos.x + offset))
         spawn_y = GROUND_Y - E_SIZE.y
 
-        hp = 100 if real_hp else 9999
-        e  = Emeny(self.game, hp, self.player, 'emeny',
-                   Vector2(spawn_x, spawn_y), E_SIZE, self.tile_size)
+        if rage_hp:
+            hp = 30          
+        elif real_hp:
+            hp = 100
+        else:
+            hp = 9999
+
+        e = Emeny(self.game, hp, self.player, 'emeny',
+                  Vector2(spawn_x, spawn_y), E_SIZE, self.tile_size)
 
 
-        e.flip = spawn_x > self.player.pos.x
+        if real_hp:
+            e.rage_triggered = True
+
+
+        if behind_block:
+            e.rage_triggered = True
+            e.flip = spawn_x > self.player.pos.x
+            e.change_state('block')
+        elif rage_hp:
+
+            e.rage_triggered = True
+            e.flip = spawn_x > self.player.pos.x
+            e.change_state('rage_block')
+        else:
+            e.flip = spawn_x > self.player.pos.x
 
         self.enemies.append(e)
 
@@ -224,6 +252,9 @@ class Tutorial:
         self._hit_landed = False
         self._knockback_finisher_hit = False
         self._heavy_finisher_hit = False
+        self._rage_block_broken = False
+        self._behind_hit_landed = False
+        self._rage_step_failed = False
         self._fading = False
         self._fade_t = 0.0
         self._fade_alpha = 255
@@ -240,7 +271,27 @@ class Tutorial:
             self._spawn_enemy(
                 behind=step.get('behind', False),
                 real_hp=step.get('final_fight', False),
+                rage_hp=step.get('rage_block', False),
+                behind_block=step.get('behind_block', False),
             )
+
+    def _reset_rage_step(self):
+
+        self._hit_landed = False
+        self._knockback_finisher_hit = False
+        self._heavy_finisher_hit = False
+        self._rage_block_broken = False
+        self._rage_step_failed = False
+        self.step_done = False
+        self.enemies.clear()
+
+        self.player.pos.x = PLAYER_SPAWN_PX.x
+        self.player.pos.y = PLAYER_SPAWN_PX.y
+        self.player.velocity = Vector2(0, 0)
+        self.player.health = 99999
+        self.player.change_state('idle')
+
+        self._spawn_enemy(behind=False, real_hp=False, rage_hp=True)
 
     def _next_step(self):
         if self.step_index + 1 >= len(STEPS):
@@ -250,24 +301,19 @@ class Tutorial:
         self._start_step(self.step_index + 1)
 
 
-
     def handle_enter(self):
-
         if self._warn_active:
-
             if self._warn_confirm_ready:
                 self._warn_active = False
                 self._outro = True
                 self._outro_t = 0.0
         elif not self._outro:
-
             self._warn_active = True
             self._warn_timer = 0.0
             self._warn_alpha = 0
             self._warn_confirm_ready = False
 
     def handle_l_advance(self):
-
         if self.waiting:
             self._next_step()
 
@@ -283,11 +329,19 @@ class Tutorial:
         self._heavy_finisher_hit = True
         self._hit_landed = True
 
- 
+    def notify_rage_block_broken(self):
+        self._rage_block_broken = True
+        self._hit_landed = True
+
+    def notify_behind_hit(self):
+        self._behind_hit_landed = True
+
 
     def update(self, dt, velocity):
-        step     = STEPS[self.step_index]
+        step = STEPS[self.step_index]
         is_final = step.get('final_fight', False)
+        is_rage = step.get('rage_block', False)
+        is_behind_block = step.get('behind_block', False)
 
         if self._warn_active:
             self._warn_timer += dt
@@ -295,13 +349,26 @@ class Tutorial:
                 self._warn_alpha = int(255 * (self._warn_timer / self._warn_fade_in))
             else:
                 self._warn_alpha = 255
-                self._warn_confirm_ready = True  
+                self._warn_confirm_ready = True
 
             if self._warn_timer >= self._warn_dur:
-
                 self._warn_active = False
             return
 
+        if self._rage_step_failed:
+            self.player.update(velocity, self.collisions, dt)
+            for e in self.enemies:
+                e.update(velocity, self.collisions, dt)
+                if e.alive:
+                    e.attack()
+
+            all_done = all(
+                e.current_state != e.states.get('quick_attack')
+                for e in self.enemies
+            )
+            if all_done:
+                self._reset_rage_step()
+            return
 
         if step.get('behind') and not self._turn_done:
             if self.player.current_state in (
@@ -309,10 +376,9 @@ class Tutorial:
                     self.player.states['turn_right']):
                 self._turn_done = True
 
-
         self.player.update(velocity, self.collisions, dt)
 
-        passive_keys = {'hurt', 'down', 'stand_up', 'death'}
+        passive_keys = {'hurt', 'down', 'stand_up', 'death', 'rage_block', 'quick_attack'}
 
         for e in self.enemies:
             in_passive = any(
@@ -325,6 +391,27 @@ class Tutorial:
                 e.update(velocity, self.collisions, dt)
                 if e.alive:
                     e.attack()
+
+            elif is_behind_block:
+
+                e.update(velocity, self.collisions, dt)
+                if e.alive and e.current_state not in (
+                        e.states.get('block'), e.states.get('hurt')):
+                    e.health = 9999
+                    e.change_state('block')
+
+            elif is_rage:
+
+                hurt_done = (self._rage_block_broken and e.current_state != e.states.get('hurt'))
+                if hurt_done:
+                    e.velocity.x = 0
+                else:
+                    e.update(velocity, self.collisions, dt)
+
+                    if (e.current_state == e.states.get('quick_attack')
+                            and not self._rage_block_broken):
+                        self._rage_step_failed = True
+
             else:
 
                 if not in_passive:
@@ -342,26 +429,36 @@ class Tutorial:
                     if e.alive:
                         e.change_state('idle')
 
-
         for e in self.enemies:
             if e.alive:
                 self.player.attack(e)
 
-   
         self.enemies = [e for e in self.enemies if e.alive]
 
         if is_final:
-
             if not self.enemies and not self._final_enemy_dead:
                 self._final_enemy_dead = True
                 self._final_cleared = True
                 self._outro = True
                 self._outro_t = 0.0
+
+        elif is_rage:
+            # Enemy was killed before rage triggered — respawn so the lesson plays out.
+            if not self.enemies and not self._rage_block_broken:
+                self._spawn_enemy(behind=False, real_hp=False, rage_hp=True)
+
+        elif is_behind_block:
+            # Respawn the blocking dummy if it somehow died.
+            if not self.enemies and not self._behind_hit_landed:
+                self._spawn_enemy(behind=False, real_hp=False, behind_block=True)
+
         else:
-
             if step.get('spawn_enemy') and not self.enemies:
-                self._spawn_enemy(behind=step.get('behind', False), real_hp=False)
-
+                self._spawn_enemy(
+                    behind=step.get('behind', False),
+                    real_hp=False,
+                    rage_hp=False,
+                )
 
         if self._fading:
             self._fade_t += dt
@@ -371,7 +468,6 @@ class Tutorial:
                 self._fading = False
                 self.waiting = True
 
-
         if self._outro:
             self._outro_t += dt
             progress = min(self._outro_t / self._outro_dur, 1.0)
@@ -380,13 +476,12 @@ class Tutorial:
                 self.game.game_state.set_state('level1')
                 return
 
-        if not self.step_done and not self.waiting and not self._fading:
+        if not self.step_done and not self.waiting and not self._fading and not self._rage_step_failed:
             if step['goal'](self):
                 self.step_done = True
                 self._fading = True
                 self._fade_t = 0.0
                 self._fade_alpha = 255
-
 
 
     def render(self, surface, scroll):
@@ -407,7 +502,6 @@ class Tutorial:
     def _render_guide(self, win):
         step = STEPS[self.step_index]
         ww, wh = win.get_size()
-
 
         banner = pygame.Surface((ww, 64), pygame.SRCALPHA)
         banner.fill((0, 0, 0, 180))
@@ -437,8 +531,6 @@ class Tutorial:
             next_prompt = self.font_next.render('L -> next step', True, (80, 255, 140))
             win.blit(next_prompt, (ww - next_prompt.get_width() - 16, wh - 40))
 
-
-
         dot_r   = 5
         spacing = 18
         total_w = (len(STEPS) - 1) * spacing + dot_r * 2
@@ -449,11 +541,9 @@ class Tutorial:
                      (60, 80, 100)
             pygame.draw.circle(win, colour, (start_x + i * spacing, wh - 24), dot_r)
 
-
         if self._outro and self._outro_alpha > 0:
             self._blackout.set_alpha(self._outro_alpha)
             win.blit(self._blackout, (0, 0))
-
 
         if self._warn_active:
             dark = pygame.Surface((ww, wh), pygame.SRCALPHA)
@@ -465,7 +555,6 @@ class Tutorial:
             w2 = self.font_big.render('This game is hard!', True, (255, 200, 80))
             w3 = self.font_sm.render(
                 'Skipping the tutorial is not recommended...', True, (200, 200, 200))
-
             w4 = self.font_sm.render('Press ENTER again to skip anyway', True, (255, 140, 140))
 
             for surf in (w1, w2, w3, w4):

@@ -19,10 +19,10 @@ class LevelUno():
 
         self.cutscene = Cutscene([
             "hello?",
-            "i've runned out of gas",
-            "can you help me?",
-            "...",
-            "oh god pls no!",
+            "herro?",
+            "Hibachi Benihana Teriyaki?",
+            "Karate. Judo. Sumo. Samurai?",
+            "dang",
         ])
 
 
@@ -115,13 +115,11 @@ class LevelUno():
             self.player.update(velocity, self.collisions, dt)
             self.cutscene.update(dt)
 
-
             for enemy in self.enemies:
                 enemy.update(velocity, self.collisions, dt)
                 if enemy.current_state != enemy.states['idle']:
                     enemy.change_state('idle')  
                 
-
             return 
 
 
